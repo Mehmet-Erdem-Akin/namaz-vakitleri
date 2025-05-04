@@ -1,8 +1,8 @@
 'use client';
 
-import { useEffect, useState } from 'react';
-import { CurrentPrayer, DailyPrayerData, NextPrayer, PrayerTimingInfo } from '../../types';
-import { calculatePrayerTimings, getNextPrayerLocal } from '../../services/prayerService';
+import { useEffect, useState, useCallback } from 'react';
+import { DailyPrayerData, NextPrayer, PrayerTimingInfo } from '../../types';
+import { calculatePrayerTimings } from '../../services/prayerService';
 
 interface PrayerTimeCardProps {
   data: DailyPrayerData;
@@ -27,6 +27,39 @@ const PrayerTimeCard = ({ data, isToday, getNextPrayerFunc }: PrayerTimeCardProp
     }).format(date);
   };
 
+  // Namaz vakti bilgilerini günceller - useCallback ile sarmalayıp, yukarı taşıyalım
+  const updatePrayerInfo = useCallback(async () => {
+    if (!isToday) return;
+
+    setLoading(true);
+    try {
+      // API kullanarak sonraki namaz vaktini al
+      if (getNextPrayerFunc) {
+        const apiNextPrayer = await getNextPrayerFunc();
+
+        // Tüm vakitleri hesapla (hem mevcut hem sonraki)
+        const localPrayerInfo = calculatePrayerTimings(data.prayerTimes);
+
+        // API verisiyle güncelle
+        setPrayerInfo({
+          currentPrayer: localPrayerInfo.currentPrayer,
+          nextPrayer: apiNextPrayer,
+        });
+      } else {
+        // Lokal hesaplama yap
+        const localPrayerInfo = calculatePrayerTimings(data.prayerTimes);
+        setPrayerInfo(localPrayerInfo);
+      }
+    } catch (error) {
+      console.error('Namaz vakti hesaplanırken hata:', error);
+      // Hata durumunda lokal hesaplama yap
+      const localPrayerInfo = calculatePrayerTimings(data.prayerTimes);
+      setPrayerInfo(localPrayerInfo);
+    } finally {
+      setLoading(false);
+    }
+  }, [isToday, getNextPrayerFunc, data.prayerTimes]);
+
   // Gerçek zamanlı saat güncellemesi ve namaz vakti hesaplaması
   useEffect(() => {
     if (isToday) {
@@ -41,7 +74,7 @@ const PrayerTimeCard = ({ data, isToday, getNextPrayerFunc }: PrayerTimeCardProp
 
       return () => clearInterval(minuteTimer);
     }
-  }, [isToday, data.prayerTimes]);
+  }, [isToday, updatePrayerInfo]);
 
   // Geri sayım zamanlayıcısı
   useEffect(() => {
@@ -52,11 +85,10 @@ const PrayerTimeCard = ({ data, isToday, getNextPrayerFunc }: PrayerTimeCardProp
       if (!prayerInfo) return;
 
       const now = new Date();
-      let targetTime: Date;
 
       // Hedef zamanı belirle
       const [endHour, endMinute] = prayerInfo.nextPrayer.time.split(':').map(Number);
-      targetTime = new Date();
+      const targetTime = new Date();
       targetTime.setHours(endHour, endMinute, 0, 0);
 
       // Eğer hedef zaman bugünden önceyse (yarın için), 24 saat ekle
@@ -89,40 +121,7 @@ const PrayerTimeCard = ({ data, isToday, getNextPrayerFunc }: PrayerTimeCardProp
     const countdownTimer = setInterval(updateCountdown, 1000);
 
     return () => clearInterval(countdownTimer);
-  }, [isToday, prayerInfo]);
-
-  // Namaz vakti bilgilerini günceller
-  const updatePrayerInfo = async () => {
-    if (!isToday) return;
-
-    setLoading(true);
-    try {
-      // API kullanarak sonraki namaz vaktini al
-      if (getNextPrayerFunc) {
-        const apiNextPrayer = await getNextPrayerFunc();
-
-        // Tüm vakitleri hesapla (hem mevcut hem sonraki)
-        const localPrayerInfo = calculatePrayerTimings(data.prayerTimes);
-
-        // API verisiyle güncelle
-        setPrayerInfo({
-          currentPrayer: localPrayerInfo.currentPrayer,
-          nextPrayer: apiNextPrayer,
-        });
-      } else {
-        // Lokal hesaplama yap
-        const localPrayerInfo = calculatePrayerTimings(data.prayerTimes);
-        setPrayerInfo(localPrayerInfo);
-      }
-    } catch (error) {
-      console.error('Namaz vakti hesaplanırken hata:', error);
-      // Hata durumunda lokal hesaplama yap
-      const localPrayerInfo = calculatePrayerTimings(data.prayerTimes);
-      setPrayerInfo(localPrayerInfo);
-    } finally {
-      setLoading(false);
-    }
-  };
+  }, [isToday, prayerInfo, updatePrayerInfo]);
 
   return (
     <div

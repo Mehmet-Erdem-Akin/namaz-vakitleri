@@ -1,5 +1,4 @@
 import {
-  City,
   CurrentPrayer,
   DailyPrayerData,
   NextPrayer,
@@ -9,15 +8,6 @@ import {
 } from '../types';
 import { cities } from '../data/cities';
 import { fetchAllPrayerTimes, fetchNextPrayer } from './apiService';
-
-// Türkçe tarih formatı
-const formatDateLocalized = (date: Date): string => {
-  return date.toLocaleDateString('tr-TR', {
-    year: 'numeric',
-    month: 'long',
-    day: 'numeric',
-  });
-};
 
 // Hicri tarih formatı - basitleştirilmiş örnek
 const formatHijriDate = (dateOffset: number = 0): string => {
@@ -148,7 +138,7 @@ const adjustTimeByMinutes = (timeStr: string, minuteChange: number): string => {
   const [hours, minutes] = timeStr.split(':').map(Number);
 
   // Yeni zamanı hesapla
-  let totalMinutes = hours * 60 + minutes + minuteChange;
+  const totalMinutes = hours * 60 + minutes + minuteChange;
 
   // Saat ve dakikayı tekrar oluştur
   const newHours = Math.floor(totalMinutes / 60) % 24;
@@ -196,7 +186,7 @@ export const calculatePrayerTimings = (prayerTimes: PrayerTime): PrayerTimingInf
   const now = new Date();
   const currentHour = now.getHours();
   const currentMinute = now.getMinutes();
-  const currentTimeAsMinutes = currentHour * 60 + currentMinute;
+  const totalMinutes = currentHour * 60 + currentMinute;
 
   // Şimdi vakitleri dakika cinsinden diziye çevirelim
   const prayerTimesInMinutes = prayers.map(prayer => {
@@ -209,7 +199,7 @@ export const calculatePrayerTimings = (prayerTimes: PrayerTime): PrayerTimingInf
   });
 
   // Sıradaki vakit
-  let nextPrayerIndex = prayerTimesInMinutes.findIndex(p => p.timeInMinutes > currentTimeAsMinutes);
+  let nextPrayerIndex = prayerTimesInMinutes.findIndex(p => p.timeInMinutes > totalMinutes);
 
   // Eğer bugün için bir sonraki vakit yoksa, ilk vakti al (yarın sabah)
   if (nextPrayerIndex === -1) {
@@ -217,7 +207,7 @@ export const calculatePrayerTimings = (prayerTimes: PrayerTime): PrayerTimingInf
     // Yarın için hesaplama
     const tomorrowFajrMinutes = prayerTimesInMinutes[0].timeInMinutes + 24 * 60;
 
-    const remainingMinutes = tomorrowFajrMinutes - currentTimeAsMinutes;
+    const remainingMinutes = tomorrowFajrMinutes - totalMinutes;
     const remainingHours = Math.floor(remainingMinutes / 60);
     const remainingMins = remainingMinutes % 60;
 
@@ -241,7 +231,7 @@ export const calculatePrayerTimings = (prayerTimes: PrayerTime): PrayerTimingInf
 
   // Bir sonraki namaz vakti
   const nextPrayerTime = prayerTimesInMinutes[nextPrayerIndex];
-  const remainingMinutes = nextPrayerTime.timeInMinutes - currentTimeAsMinutes;
+  const remainingMinutes = nextPrayerTime.timeInMinutes - totalMinutes;
   const remainingHours = Math.floor(remainingMinutes / 60);
   const remainingMins = remainingMinutes % 60;
 
@@ -257,7 +247,7 @@ export const calculatePrayerTimings = (prayerTimes: PrayerTime): PrayerTimingInf
   const endTime = nextPrayerTime.time;
 
   // Şu anki vakit için kalan süre
-  const currentRemainingMinutes = nextPrayerTime.timeInMinutes - currentTimeAsMinutes;
+  const currentRemainingMinutes = nextPrayerTime.timeInMinutes - totalMinutes;
   const currentRemainingHours = Math.floor(currentRemainingMinutes / 60);
   const currentRemainingMins = currentRemainingMinutes % 60;
   const currentRemainingSecs = 0; // Varsayılan değer, gerçek projelerde daha hassas hesaplanabilir
