@@ -16,7 +16,7 @@ Türkiye'deki tüm şehirler için namaz vakitlerini gösteren, gece/gündüz mo
 ![Gündüz Görünümü - Güneş ve Bulutlar](https://github.com/Mehmet-Erdem-Akin/namaz-vakitleri/blob/main/public/screenshots/gunduz-desktop.png)
 
 ### Gündüz Görünümü (Mobil)
-![Gündüz Görünümü - Mobil]([/screenshots/gunduz-mobile.png](https://github.com/Mehmet-Erdem-Akin/namaz-vakitleri/blob/main/public/screenshots/gunduz-mobile.png))
+![Gündüz Görünümü - Mobil](https://github.com/Mehmet-Erdem-Akin/namaz-vakitleri/blob/main/public/screenshots/gunduz-mobile.png)
 
 ## Özellikler
 
