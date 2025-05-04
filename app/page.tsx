@@ -1,20 +1,20 @@
-"use client";
+'use client';
 
-import { useState, useEffect } from "react";
-import { cities } from "./data/cities";
-import { City, PrayerTimingInfo, WeeklyPrayerData } from "./types";
-import { calculatePrayerTimings, getPrayerTimes, getNextPrayer } from "./services/prayerService";
-import TimeDisplay from "./components/ui/TimeDisplay";
-import CitySelector from "./components/ui/CitySelector";
-import NotificationControl from "./components/ui/NotificationControl";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useState, useEffect } from 'react';
+import { cities } from './data/cities';
+import { City, PrayerTimingInfo, WeeklyPrayerData } from './types';
+import { calculatePrayerTimings, getPrayerTimes, getNextPrayer } from './services/prayerService';
+import TimeDisplay from './components/ui/TimeDisplay';
+import CitySelector from './components/ui/CitySelector';
+import NotificationControl from './components/ui/NotificationControl';
+import { useRouter, useSearchParams } from 'next/navigation';
 
 export default function Home() {
   const [selectedCity, setSelectedCity] = useState<City>(cities[5]); // Varsayılan olarak Ankara
   const [prayerData, setPrayerData] = useState<WeeklyPrayerData | null>(null);
   const [prayerInfo, setPrayerInfo] = useState<PrayerTimingInfo | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
-  const [countdown, setCountdown] = useState<string>("00:00:00");
+  const [countdown, setCountdown] = useState<string>('00:00:00');
   const [error, setError] = useState<string | null>(null);
 
   const searchParams = useSearchParams();
@@ -42,8 +42,8 @@ export default function Home() {
 
         // URL güncelleme işlemi artık select onChange'de yapılıyor
       } catch (error) {
-        console.error("Namaz vakitleri yüklenirken hata oluştu:", error);
-        setError("Namaz vakitleri yüklenirken bir hata oluştu. Lütfen tekrar deneyin.");
+        console.error('Namaz vakitleri yüklenirken hata oluştu:', error);
+        setError('Namaz vakitleri yüklenirken bir hata oluştu. Lütfen tekrar deneyin.');
       } finally {
         setLoading(false);
       }
@@ -117,12 +117,12 @@ export default function Home() {
 
     const todayData = prayerData.days[0];
     const prayerTimes = [
-      { name: "İmsak", time: todayData.prayerTimes.fajr },
-      { name: "Güneş", time: todayData.prayerTimes.sunrise },
-      { name: "Öğle", time: todayData.prayerTimes.dhuhr },
-      { name: "İkindi", time: todayData.prayerTimes.asr },
-      { name: "Akşam", time: todayData.prayerTimes.maghrib },
-      { name: "Yatsı", time: todayData.prayerTimes.isha }
+      { name: 'İmsak', time: todayData.prayerTimes.fajr },
+      { name: 'Güneş', time: todayData.prayerTimes.sunrise },
+      { name: 'Öğle', time: todayData.prayerTimes.dhuhr },
+      { name: 'İkindi', time: todayData.prayerTimes.asr },
+      { name: 'Akşam', time: todayData.prayerTimes.maghrib },
+      { name: 'Yatsı', time: todayData.prayerTimes.isha },
     ];
 
     return (
@@ -131,17 +131,19 @@ export default function Home() {
           {todayData.date} / {todayData.hijriDate}
         </div>
         <div className="grid grid-cols-3 gap-3">
-          {prayerTimes.map((prayer) => {
+          {prayerTimes.map(prayer => {
             const isNext = prayerInfo?.nextPrayer.name === prayer.name;
             const isCurrent = prayerInfo?.currentPrayer.name === prayer.name;
-            let boxClass = "prayer-time-box ";
-            boxClass += isNext ? "next" : isCurrent ? "current" : "regular";
+            let boxClass = 'prayer-time-box ';
+            boxClass += isNext ? 'next' : isCurrent ? 'current' : 'regular';
 
             return (
               <div key={prayer.name} className={boxClass}>
                 <div className="text-xs text-gray-600 dark:text-gray-400">{prayer.name}</div>
                 <div className="text-lg font-semibold">{prayer.time}</div>
-                {isCurrent && <div className="text-xs text-green-600 font-medium">Şu anki vakit</div>}
+                {isCurrent && (
+                  <div className="text-xs text-green-600 font-medium">Şu anki vakit</div>
+                )}
                 {isNext && <div className="text-xs text-blue-600 font-medium">Sonraki vakit</div>}
               </div>
             );
@@ -165,7 +167,11 @@ export default function Home() {
           <div className="text-center py-10 text-red-600">
             <p>{error}</p>
             <button
-              onClick={() => getPrayerTimes(selectedCity.id).then(setPrayerData).catch(e => setError(e.message))}
+              onClick={() =>
+                getPrayerTimes(selectedCity.id)
+                  .then(setPrayerData)
+                  .catch(e => setError(e.message))
+              }
               className="mt-4 px-4 py-2 bg-blue-500 text-white rounded-md hover:bg-blue-600"
             >
               Tekrar Dene
@@ -197,7 +203,12 @@ export default function Home() {
               </p>
               <p className="text-xs">
                 © {new Date().getFullYear()} Namaz Vakitleri •
-                <a href="https://collectapi.com/" className="text-blue-500 ml-1" target="_blank" rel="noopener noreferrer">
+                <a
+                  href="https://collectapi.com/"
+                  className="text-blue-500 ml-1"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
                   CollectAPI
                 </a>
               </p>
