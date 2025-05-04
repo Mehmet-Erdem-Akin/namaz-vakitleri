@@ -1,7 +1,110 @@
-import { City, DailyPrayerData, NextPrayer, PrayerTime, WeeklyPrayerData } from "../types";
+import { City, CurrentPrayer, DailyPrayerData, NextPrayer, PrayerTime, PrayerTimingInfo, WeeklyPrayerData } from "../types";
 import { cities } from "../data/cities";
+import { fetchAllPrayerTimes, fetchNextPrayer } from "./apiService";
 
-// API'nin çalışması için örnek veri oluşturuyoruz (gerçek projede bu API'den gelecek)
+// Türkçe tarih formatı
+const formatDateLocalized = (date: Date): string => {
+    return date.toLocaleDateString('tr-TR', {
+        year: 'numeric',
+        month: 'long',
+        day: 'numeric'
+    });
+};
+
+// Hicri tarih formatı - basitleştirilmiş örnek
+const formatHijriDate = (dateOffset: number = 0): string => {
+    // Gerçek hicri tarih hesaplamasını buraya ekleyebilirsiniz
+    // Şimdilik örnek bir veri döndürüyoruz
+    const date = new Date();
+    date.setDate(date.getDate() + dateOffset);
+    const day = date.getDate();
+    const month = date.getMonth() + 1;
+    const year = 1445; // 2023/2024 Hicri yılı (basit örnek)
+
+    const hijriMonths = [
+        "Muharrem", "Safer", "Rebiülevvel", "Rebiülahir",
+        "Cemaziyelevvel", "Cemaziyelahir", "Recep", "Şaban",
+        "Ramazan", "Şevval", "Zilkade", "Zilhicce"
+    ];
+
+    return `${day} ${hijriMonths[month % 12]} ${year}`;
+};
+
+/**
+ * Namaz vakitlerini getiren ana fonksiyon
+ * Bu fonksiyon artık gerçek API'ye bağlanıyor, API çalışmazsa mock veri kullanabilir
+ */
+export const getPrayerTimes = async (cityId: number): Promise<WeeklyPrayerData> => {
+    const city = cities.find(c => c.id === cityId) || cities[0];
+    const days: DailyPrayerData[] = [];
+
+    try {
+        // API'den bugünün verilerini al
+        const todaysPrayerTimes = await fetchAllPrayerTimes(city.name);
+
+        // Bugünü ekle
+        days.push({
+            date: new Date().toISOString().split('T')[0],
+            hijriDate: formatHijriDate(0),
+            prayerTimes: todaysPrayerTimes
+        });
+
+        // Diğer günler için şimdilik mock veri kullanıyoruz
+        // Gerçek bir API entegrasyonunda, sonraki günler için de API çağrısı yapılabilir
+        for (let i = 1; i < 7; i++) {
+            const date = new Date();
+            date.setDate(date.getDate() + i);
+
+            // Mock veri oluştur - gelecekte bu kısım da API'den alınabilir
+            const prayerTime: PrayerTime = {
+                fajr: adjustTimeByMinutes(todaysPrayerTimes.fajr, -1 + i),
+                sunrise: adjustTimeByMinutes(todaysPrayerTimes.sunrise, -1 + i),
+                dhuhr: adjustTimeByMinutes(todaysPrayerTimes.dhuhr, 0 + i),
+                asr: adjustTimeByMinutes(todaysPrayerTimes.asr, 1 + i),
+                maghrib: adjustTimeByMinutes(todaysPrayerTimes.maghrib, 2 + i),
+                isha: adjustTimeByMinutes(todaysPrayerTimes.isha, 1 + i),
+            };
+
+            days.push({
+                date: date.toISOString().split('T')[0],
+                hijriDate: formatHijriDate(i),
+                prayerTimes: prayerTime
+            });
+        }
+
+        return { city, days };
+    } catch (error) {
+        console.error("API servis hatası, mock veri kullanılıyor:", error);
+        // API başarısız olursa, mock veri kullan
+        return generateMockWeeklyData(cityId);
+    }
+};
+
+/**
+ * API başarısız olursa kullanılacak mock veri
+ */
+const generateMockWeeklyData = (cityId: number): WeeklyPrayerData => {
+    const city = cities.find(c => c.id === cityId) || cities[0];
+    const days: DailyPrayerData[] = [];
+
+    // 7 günlük veri oluştur
+    for (let i = 0; i < 7; i++) {
+        const date = new Date();
+        date.setDate(date.getDate() + i);
+
+        days.push({
+            date: date.toISOString().split('T')[0],
+            hijriDate: formatHijriDate(i),
+            prayerTimes: generateMockPrayerTime(cityId, i)
+        });
+    }
+
+    return { city, days };
+};
+
+/**
+ * Mock namaz vakti oluştur
+ */
 const generateMockPrayerTime = (cityId: number, dayOffset: number = 0): PrayerTime => {
     // Şehir ID'sine göre sabit bir base değer oluştur
     const baseMinute = (cityId * 7) % 30;
@@ -19,54 +122,48 @@ const generateMockPrayerTime = (cityId: number, dayOffset: number = 0): PrayerTi
     };
 };
 
-const formatDate = (dateOffset: number = 0): string => {
-    const date = new Date();
-    date.setDate(date.getDate() + dateOffset);
-    return date.toISOString().split('T')[0];
+/**
+ * Zaman bilgisini dakika cinsinden ayarla
+ */
+const adjustTimeByMinutes = (timeStr: string, minuteChange: number): string => {
+    if (!timeStr) return "";
+
+    const [hours, minutes] = timeStr.split(':').map(Number);
+
+    // Yeni zamanı hesapla
+    let totalMinutes = hours * 60 + minutes + minuteChange;
+
+    // Saat ve dakikayı tekrar oluştur
+    const newHours = Math.floor(totalMinutes / 60) % 24;
+    const newMinutes = totalMinutes % 60;
+
+    // Formatlı saat döndür
+    return `${newHours.toString().padStart(2, '0')}:${newMinutes.toString().padStart(2, '0')}`;
 };
 
-const formatHijriDate = (dateOffset: number = 0): string => {
-    // Örnek için basit bir hesaplama
-    const date = new Date();
-    date.setDate(date.getDate() + dateOffset);
-    const day = date.getDate();
-    const month = date.getMonth() + 1;
-    const year = 1445; // 2023/2024 Hicri yılı (basit örnek)
+/**
+ * Bir sonraki namaz vaktini hesapla
+ * Bu fonksiyon API'den veri alamazsa local hesaplama yapar
+ */
+export const getNextPrayer = async (prayerTimes: PrayerTime, cityName: string = "istanbul"): Promise<NextPrayer> => {
+    try {
+        // API'den bir sonraki namaz vaktini almayı dene
+        const vakit = calculatePrayerTimings(prayerTimes).nextPrayer.name;
 
-    const hijriMonths = [
-        "Muharrem", "Safer", "Rebiülevvel", "Rebiülahir",
-        "Cemaziyelevvel", "Cemaziyelahir", "Recep", "Şaban",
-        "Ramazan", "Şevval", "Zilkade", "Zilhicce"
-    ];
-
-    return `${day} ${hijriMonths[month % 12]} ${year}`;
-};
-
-// Namaz vakitlerini getiren API
-export const getPrayerTimes = async (cityId: number): Promise<WeeklyPrayerData> => {
-    // Gerçek projede burada bir API çağrısı yapılacak
-    // Şimdilik örnek veri döndürüyoruz
-    const city = cities.find(c => c.id === cityId) || cities[0];
-
-    const days: DailyPrayerData[] = [];
-
-    // 7 günlük veri oluştur
-    for (let i = 0; i < 7; i++) {
-        days.push({
-            date: formatDate(i),
-            hijriDate: formatHijriDate(i),
-            prayerTimes: generateMockPrayerTime(cityId, i)
-        });
+        // API'den veriyi al
+        const nextPrayer = await fetchNextPrayer(cityName, vakit);
+        return nextPrayer;
+    } catch (error) {
+        console.error("API'den veri alınamadı, lokal hesaplama kullanılıyor:", error);
+        // API başarısız olursa, lokal hesaplamayı kullan
+        return calculatePrayerTimings(prayerTimes).nextPrayer;
     }
-
-    return {
-        city,
-        days
-    };
 };
 
-// Bir sonraki namaz vaktini hesaplayan fonksiyon
-export const getNextPrayer = (prayerTimes: PrayerTime): NextPrayer => {
+/**
+ * Zamanlama bilgilerini işle (mevcut ve sonraki namaz vakitleri)
+ */
+export const calculatePrayerTimings = (prayerTimes: PrayerTime): PrayerTimingInfo => {
     const prayers = [
         { name: "İmsak", time: prayerTimes.fajr },
         { name: "Güneş", time: prayerTimes.sunrise },
@@ -81,35 +178,86 @@ export const getNextPrayer = (prayerTimes: PrayerTime): NextPrayer => {
     const currentMinute = now.getMinutes();
     const currentTimeAsMinutes = currentHour * 60 + currentMinute;
 
-    // Günün vakitlerini kontrol et
-    for (const prayer of prayers) {
+    // Şimdi vakitleri dakika cinsinden diziye çevirelim
+    const prayerTimesInMinutes = prayers.map(prayer => {
         const [hour, minute] = prayer.time.split(':').map(Number);
-        const prayerTimeAsMinutes = hour * 60 + minute;
+        return {
+            name: prayer.name,
+            time: prayer.time,
+            timeInMinutes: hour * 60 + minute
+        };
+    });
 
-        if (prayerTimeAsMinutes > currentTimeAsMinutes) {
-            // Kalan zamanı hesapla
-            const remainingMinutes = prayerTimeAsMinutes - currentTimeAsMinutes;
-            const remainingHours = Math.floor(remainingMinutes / 60);
-            const remainingMins = remainingMinutes % 60;
+    // Sıradaki vakit
+    let nextPrayerIndex = prayerTimesInMinutes.findIndex(p => p.timeInMinutes > currentTimeAsMinutes);
 
-            return {
-                name: prayer.name,
-                time: prayer.time,
-                remainingTime: `${remainingHours} saat ${remainingMins} dakika`
-            };
-        }
+    // Eğer bugün için bir sonraki vakit yoksa, ilk vakti al (yarın sabah)
+    if (nextPrayerIndex === -1) {
+        nextPrayerIndex = 0;
+        // Yarın için hesaplama
+        const tomorrowFajrMinutes = prayerTimesInMinutes[0].timeInMinutes + 24 * 60;
+
+        const remainingMinutes = tomorrowFajrMinutes - currentTimeAsMinutes;
+        const remainingHours = Math.floor(remainingMinutes / 60);
+        const remainingMins = remainingMinutes % 60;
+
+        const nextPrayer: NextPrayer = {
+            name: `${prayers[0].name} (yarın)`,
+            time: prayers[0].time,
+            remainingTime: `${remainingHours} saat ${remainingMins} dakika`
+        };
+
+        // Şu an aktif bir vakit yok, günün son vakti Yatsı'dan sonra
+        const currentPrayer: CurrentPrayer = {
+            name: "Yatsı",
+            startTime: prayers[5].time,
+            endTime: prayers[0].time,
+            remainingTime: "00:00:00",
+            isActive: false
+        };
+
+        return { currentPrayer, nextPrayer };
     }
 
-    // Eğer tüm vakitler geçtiyse bir sonraki günün imsak vaktini hesapla
-    const [hour, minute] = prayers[0].time.split(':').map(Number);
-    const tomorrowFajrAsMinutes = hour * 60 + minute + 24 * 60;
-    const remainingMinutes = tomorrowFajrAsMinutes - currentTimeAsMinutes;
+    // Bir sonraki namaz vakti
+    const nextPrayerTime = prayerTimesInMinutes[nextPrayerIndex];
+    const remainingMinutes = nextPrayerTime.timeInMinutes - currentTimeAsMinutes;
     const remainingHours = Math.floor(remainingMinutes / 60);
     const remainingMins = remainingMinutes % 60;
 
-    return {
-        name: "İmsak (yarın)",
-        time: prayers[0].time,
+    const nextPrayer: NextPrayer = {
+        name: nextPrayerTime.name,
+        time: nextPrayerTime.time,
         remainingTime: `${remainingHours} saat ${remainingMins} dakika`
     };
+
+    // Şu anki namaz vakti (önceki vakit)
+    const currentPrayerIndex = nextPrayerIndex > 0 ? nextPrayerIndex - 1 : 5;
+    const currentPrayerTime = prayerTimesInMinutes[currentPrayerIndex];
+    const endTime = nextPrayerTime.time;
+
+    // Şu anki vakit için kalan süre
+    const currentRemainingMinutes = nextPrayerTime.timeInMinutes - currentTimeAsMinutes;
+    const currentRemainingHours = Math.floor(currentRemainingMinutes / 60);
+    const currentRemainingMins = currentRemainingMinutes % 60;
+    const currentRemainingSecs = 0; // Varsayılan değer, gerçek projelerde daha hassas hesaplanabilir
+
+    const formattedRemainingTime = `${currentRemainingHours.toString().padStart(2, '0')}:${currentRemainingMins.toString().padStart(2, '0')}:${currentRemainingSecs.toString().padStart(2, '0')}`;
+
+    const currentPrayer: CurrentPrayer = {
+        name: currentPrayerTime.name,
+        startTime: currentPrayerTime.time,
+        endTime: endTime,
+        remainingTime: formattedRemainingTime,
+        isActive: true
+    };
+
+    return { currentPrayer, nextPrayer };
+};
+
+/**
+ * Bir sonraki namaz vaktini lokal olarak hesapla
+ */
+export const getNextPrayerLocal = (prayerTimes: PrayerTime): NextPrayer => {
+    return calculatePrayerTimings(prayerTimes).nextPrayer;
 }; 

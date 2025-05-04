@@ -28,4 +28,17 @@ export interface NextPrayer {
     name: string;
     time: string;
     remainingTime: string;
+}
+
+export interface CurrentPrayer {
+    name: string;
+    startTime: string;
+    endTime: string;
+    remainingTime: string;
+    isActive: boolean;
+}
+
+export interface PrayerTimingInfo {
+    currentPrayer: CurrentPrayer;
+    nextPrayer: NextPrayer;
 } 

@@ -1,120 +1,92 @@
 "use client";
 
-import { useState } from "react";
-import { cities } from "../../data/cities";
+import { useState, useEffect, useRef } from "react";
 import { City } from "../../types";
+import { cities } from "../../data/cities";
 
 interface CitySelectorProps {
     selectedCity: City;
     onCityChange: (city: City) => void;
 }
 
-const CitySelector = ({ selectedCity, onCityChange }: CitySelectorProps) => {
-    const [isOpen, setIsOpen] = useState(false);
-    const [searchTerm, setSearchTerm] = useState("");
+export default function CitySelector({ selectedCity, onCityChange }: CitySelectorProps) {
+    const [dropdownOpen, setDropdownOpen] = useState(false);
+    const scrollRef = useRef<HTMLDivElement>(null);
+    const prevScrollPos = useRef<number>(0);
 
-    const handleToggle = () => {
-        setIsOpen(!isOpen);
-    };
+    // Bileşen mount olduğunda scroll pozisyonunu sıfırla
+    useEffect(() => {
+        prevScrollPos.current = 0;
+    }, []);
+
+    // Dropdown kapandığında scroll pozisyonunu kaydet
+    useEffect(() => {
+        if (!dropdownOpen && scrollRef.current) {
+            prevScrollPos.current = 0;
+        }
+    }, [dropdownOpen]);
+
+    // Scroll pozisyonunu sakla/geri yükle
+    useEffect(() => {
+        if (dropdownOpen && scrollRef.current) {
+            // Dropdown açıldığında önceki scroll pozisyonunu geri yükle
+            scrollRef.current.scrollTop = prevScrollPos.current;
+
+            // Scroll event listener ekle
+            const handleScroll = () => {
+                if (scrollRef.current) {
+                    prevScrollPos.current = scrollRef.current.scrollTop;
+                }
+            };
+
+            const scrollElement = scrollRef.current;
+            scrollElement.addEventListener('scroll', handleScroll);
+
+            // Temizlik fonksiyonu
+            return () => {
+                scrollElement.removeEventListener('scroll', handleScroll);
+            };
+        }
+    }, [dropdownOpen]);
 
     const handleCitySelect = (city: City) => {
         onCityChange(city);
-        setIsOpen(false);
-        setSearchTerm("");
+        setDropdownOpen(false);
     };
 
-    const filteredCities = searchTerm.length > 0
-        ? cities.filter(city =>
-            city.name.toLowerCase().includes(searchTerm.toLowerCase()))
-        : cities;
-
     return (
-        <div className="relative mb-6 w-full max-w-md">
+        <div className="mb-4 relative">
             <button
                 type="button"
-                onClick={handleToggle}
-                className="flex items-center justify-between w-full px-4 py-3 text-left bg-white border rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-                tabIndex={0}
-                aria-haspopup="listbox"
-                aria-expanded={isOpen}
-                aria-label="İl seçin"
+                onClick={() => setDropdownOpen(!dropdownOpen)}
+                className="w-full p-2 rounded-lg bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500 text-left flex justify-between items-center"
             >
-                <span className="flex items-center">
-                    <span className="ml-3 block truncate font-medium">{selectedCity.name}</span>
-                </span>
-                <span className="ml-3 absolute inset-y-0 right-0 flex items-center pr-2 pointer-events-none">
-                    <svg
-                        className="h-5 w-5 text-gray-400"
-                        xmlns="http://www.w3.org/2000/svg"
-                        viewBox="0 0 20 20"
-                        fill="currentColor"
-                        aria-hidden="true"
-                    >
-                        <path
-                            fillRule="evenodd"
-                            d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z"
-                            clipRule="evenodd"
-                        />
-                    </svg>
-                </span>
+                <span>{selectedCity.name}</span>
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7"></path>
+                </svg>
             </button>
 
-            {isOpen && (
-                <div className="absolute z-10 mt-1 w-full bg-white shadow-lg rounded-md max-h-80 overflow-y-auto">
-                    <div className="sticky top-0 z-10 bg-white p-2">
-                        <input
-                            type="text"
-                            placeholder="İl ara..."
-                            value={searchTerm}
-                            onChange={(e) => setSearchTerm(e.target.value)}
-                            className="w-full p-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                            aria-label="İl ara"
-                        />
-                    </div>
-                    <ul
-                        className="py-1"
-                        role="listbox"
-                        aria-labelledby="city-selector"
+            {dropdownOpen && (
+                <div className="absolute z-50 mt-1 w-full bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-lg shadow-lg max-h-80 overflow-hidden">
+                    {/* Şehir listesi bölümü */}
+                    <div
+                        ref={scrollRef}
+                        className="overflow-y-auto overscroll-contain"
+                        style={{ maxHeight: "300px", willChange: "scroll-position" }}
                     >
-                        {filteredCities.map((city) => (
-                            <li
+                        {cities.map(city => (
+                            <div
                                 key={city.id}
-                                className={`cursor-default select-none relative py-2 pl-3 pr-9 hover:bg-blue-100 ${selectedCity.id === city.id ? "bg-blue-50 text-blue-700" : "text-gray-900"
-                                    }`}
+                                className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 cursor-pointer border-b border-gray-100 dark:border-gray-800"
                                 onClick={() => handleCitySelect(city)}
-                                role="option"
-                                aria-selected={selectedCity.id === city.id}
-                                tabIndex={0}
-                                onKeyDown={(e) => {
-                                    if (e.key === "Enter" || e.key === " ") {
-                                        handleCitySelect(city);
-                                        e.preventDefault();
-                                    }
-                                }}
                             >
-                                <div className="flex items-center">
-                                    <span
-                                        className={`block truncate ${selectedCity.id === city.id ? "font-semibold" : "font-normal"
-                                            }`}
-                                    >
-                                        {city.name}
-                                    </span>
-                                </div>
-
-                                {selectedCity.id === city.id && (
-                                    <span className="absolute inset-y-0 right-0 flex items-center pr-4 text-blue-600">
-                                        <svg className="h-5 w-5" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
-                                            <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
-                                        </svg>
-                                    </span>
-                                )}
-                            </li>
+                                {city.name}
+                            </div>
                         ))}
-                    </ul>
+                    </div>
                 </div>
             )}
         </div>
     );
-};
-
-export default CitySelector; 
+} 
