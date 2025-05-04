@@ -1,5 +1,32 @@
 This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
 
+# Namaz Vakitleri
+
+Türkiye'deki tüm şehirler için namaz vakitlerini gösteren, gece/gündüz moduna göre görsel olarak değişen bir uygulama.
+
+## Ekran Görüntüleri
+
+### Gece Görünümü (Masaüstü)
+![Gece Görünümü - Ay ve Yıldızlar](/screenshots/gece-desktop.png)
+
+### Gece Görünümü (Mobil)
+![Gece Görünümü - Mobil](/screenshots/gece-mobile.png)
+
+### Gündüz Görünümü (Masaüstü)
+![Gündüz Görünümü - Güneş ve Bulutlar](/screenshots/gunduz-desktop.png)
+
+### Gündüz Görünümü (Mobil)
+![Gündüz Görünümü - Mobil](/screenshots/gunduz-mobile.png)
+
+## Özellikler
+
+- Türkiye'deki tüm şehirler için namaz vakitleri
+- Günün saatine göre otomatik değişen arayüz (gece, gündüz, şafak, akşam)
+- Gerçekçi gökyüzü animasyonları (yıldızlar, bulutlar, ay, güneş)
+- Mevcut ve sonraki namaz vakti gösterimi
+- Sonraki namaz vaktine kalan süre sayacı
+- Tamamen duyarlı tasarım (mobil ve masaüstü uyumlu)
+
 ## Getting Started
 
 First, run the development server:
