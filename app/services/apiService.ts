@@ -5,7 +5,26 @@ import { API_CONFIG } from "../config/apiConfig";
 const API_KEY = API_CONFIG.COLLECT_API_KEY;
 
 /**
- * Türkçe karakterleri koruyarak şehir adını URL için hazırlar
+ * Türkçe karakterleri İngilizce eşdeğerleriyle değiştirir
+ */
+const replaceTurkishChars = (str: string): string => {
+    return str
+        .replace(/ı/g, 'i')
+        .replace(/ğ/g, 'g')
+        .replace(/ü/g, 'u')
+        .replace(/ş/g, 's')
+        .replace(/ç/g, 'c')
+        .replace(/ö/g, 'o')
+        .replace(/İ/g, 'I')
+        .replace(/Ğ/g, 'G')
+        .replace(/Ü/g, 'U')
+        .replace(/Ş/g, 'S')
+        .replace(/Ç/g, 'C')
+        .replace(/Ö/g, 'O');
+};
+
+/**
+ * Şehir adını API için hazırlar - Türkçe karakterleri İngilizceye dönüştürür
  */
 const normalizeCity = (cityName: string): string => {
     // Türkçe küçük harflere çevir (toLowerCase Türkçe karakterlerde sorun çıkarabilir)
@@ -21,8 +40,12 @@ const normalizeCity = (cityName: string): string => {
             .toLowerCase();
     };
 
-    // Şehir adını Türkçe küçük harfe çevir ve encode et
-    return encodeURIComponent(turkishToLower(cityName));
+    // Önce Türkçe küçük harfe çevir, sonra İngilizce karakterlere dönüştür
+    const lowerCity = turkishToLower(cityName);
+    const englishChars = replaceTurkishChars(lowerCity);
+
+    // URL için encode et
+    return encodeURIComponent(englishChars);
 };
 
 /**
