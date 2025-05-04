@@ -6,6 +6,7 @@ import { City, PrayerTimingInfo, WeeklyPrayerData } from "./types";
 import { calculatePrayerTimings, getPrayerTimes, getNextPrayer } from "./services/prayerService";
 import TimeDisplay from "./components/ui/TimeDisplay";
 import CitySelector from "./components/ui/CitySelector";
+import NotificationControl from "./components/ui/NotificationControl";
 import { useRouter, useSearchParams } from "next/navigation";
 
 export default function Home() {
@@ -178,6 +179,12 @@ export default function Home() {
               nextPrayer={prayerInfo.nextPrayer}
               countdown={countdown}
               isLoading={loading}
+            />
+
+            {/* Bildirim Kontrol Bileşeni */}
+            <NotificationControl
+              prayerTimes={prayerData?.days[0]?.prayerTimes}
+              cityName={selectedCity.name}
             />
 
             {/* Günlük vakitler kartı */}
